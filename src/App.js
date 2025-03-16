@@ -3,9 +3,11 @@ import chart1 from "./chart1.png";
 import "./App.css";
 import { useRef, useState } from "react";
 
+const OPENWEATHER_API_KEY = "476e8dfbd2ea445a0f2a2d76630d978f";
+
 function App() {
     const homeRef = useRef(null);
-    const uvLevelsRef = useRef(null);
+    const locationRef = useRef(null);
     const uvImpactsRef = useRef(null);
     const uvSkinToneRef = useRef(null);
     const remindersRef = useRef(null);
@@ -13,6 +15,10 @@ function App() {
     const [selectedTime, setSelectedTime] = useState("");
     const [showPopup, setShowPopup] = useState(false);
     const [skinTone, setSkinTone] = useState("");
+    const [location, setLocation] = useState("");
+    const [weatherData, setWeatherData] = useState(null);
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
 
     const skinToneColors = {
         type1: "#FFE3E3",
@@ -35,14 +41,96 @@ function App() {
         }, 3000); // Hide popup after 3 seconds
     };
 
+    const getUVMessage = (uvIndex) => {
+        if (uvIndex <= 2) {
+            return { message: "Low", color: "green" };
+        } else if (uvIndex >= 3 && uvIndex <= 5) {
+            return {
+                message: "Moderate",
+                color: "yellow",
+                protection: "Sun protection is recommended",
+            };
+        } else if (uvIndex >= 6 && uvIndex <= 7) {
+            return {
+                message: "High",
+                color: "orange",
+                protection: "Sun protection is necessary",
+            };
+        } else {
+            return {
+                message: "Very High",
+                color: "red",
+                protection:
+                    "Not recommended to go outside or be exposed to the sun for long periods of time",
+            };
+        }
+    };
+
+    const fetchWeatherData = async (searchLocation) => {
+        try {
+            setLoading(true);
+            setError("");
+
+            // First, get coordinates
+            const geoResponse = await fetch(
+                `https://api.openweathermap.org/geo/1.0/direct?q=${searchLocation}&limit=1&appid=${OPENWEATHER_API_KEY}`
+            );
+            const geoData = await geoResponse.json();
+
+            if (!geoData.length) {
+                throw new Error("Location not found");
+            }
+
+            const { lat, lon, name, country } = geoData[0];
+
+            // Get weather data
+            const weatherResponse = await fetch(
+                `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${OPENWEATHER_API_KEY}`
+            );
+            const weatherResult = await weatherResponse.json();
+
+            // Get UV data
+            const uvResponse = await fetch(
+                `https://api.openweathermap.org/data/2.5/uvi?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}`
+            );
+            const uvData = await uvResponse.json();
+
+            // Get timezone offset from weather data
+            const timezoneOffset = weatherResult.timezone;
+            const localTime = new Date(Date.now() + timezoneOffset * 1000);
+
+            setWeatherData({
+                temperature: Math.round(weatherResult.main.temp),
+                description: weatherResult.weather[0].description,
+                uvIndex: uvData.value,
+                icon: weatherResult.weather[0].icon,
+                location: name,
+                country: country,
+                time: localTime,
+            });
+        } catch (err) {
+            setError("Failed to fetch weather data. Please try again.");
+            setWeatherData(null);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleLocationSubmit = (e) => {
+        e.preventDefault();
+        if (location.trim()) {
+            fetchWeatherData(location.trim());
+        }
+    };
+
     return (
         <div className="App">
             {/* Navigation bar */}
             <nav className="sticky-nav">
                 <ul>
                     <li onClick={() => scrollToSection(homeRef)}>Home</li>
-                    <li onClick={() => scrollToSection(uvLevelsRef)}>
-                        UV Levels
+                    <li onClick={() => scrollToSection(locationRef)}>
+                        Location
                     </li>
                     <li onClick={() => scrollToSection(uvImpactsRef)}>
                         UV Impacts
@@ -66,15 +154,72 @@ function App() {
                 <p>Scroll down to learn more</p>
             </header>
 
-            {/* UV Levels section */}
-            <div className="App-theme" ref={uvLevelsRef}>
-                <h1>UV Levels</h1>
-                <input
-                    type="text"
-                    className="location-input"
-                    placeholder="Enter your location"
-                />
-                {/* TODO: Add weather API and display weather data and UV index */}
+            {/* Location section */}
+            <div className="App-theme" ref={locationRef}>
+                <h1>Location</h1>
+                <form onSubmit={handleLocationSubmit} className="location-form">
+                    <input
+                        type="text"
+                        className="location-input"
+                        placeholder="Enter your location"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                    />
+                    <button type="submit" className="search-button">
+                        Search
+                    </button>
+                </form>
+
+                {loading && <p>Loading...</p>}
+                {error && <p className="error-message">{error}</p>}
+
+                {weatherData && (
+                    <div className="weather-container">
+                        <div className="location-info">
+                            <h2>
+                                {weatherData.location}, {weatherData.country}
+                            </h2>
+                            <p>
+                                {weatherData.time.toLocaleTimeString("en-US", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    hour12: true,
+                                    timeZone: "UTC",
+                                })}
+                            </p>
+                        </div>
+                        <div className="weather-info">
+                            <img
+                                src={`http://openweathermap.org/img/wn/${weatherData.icon}@2x.png`}
+                                alt="Weather icon"
+                            />
+                            <h2>{weatherData.temperature}°C</h2>
+                            <p>{weatherData.description}</p>
+                        </div>
+
+                        <div className="uv-info">
+                            <h3>UV Index: {Math.round(weatherData.uvIndex)}</h3>
+                            <div
+                                className="uv-status"
+                                style={{
+                                    color: getUVMessage(weatherData.uvIndex)
+                                        .color,
+                                    fontWeight: "bold",
+                                }}
+                            >
+                                {getUVMessage(weatherData.uvIndex).message}
+                            </div>
+                            {getUVMessage(weatherData.uvIndex).protection && (
+                                <p className="uv-protection">
+                                    {
+                                        getUVMessage(weatherData.uvIndex)
+                                            .protection
+                                    }
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* UV Impacts section */}
