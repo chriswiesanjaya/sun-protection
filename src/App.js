@@ -10,13 +10,16 @@ import "./App.css";
 import { useRef, useState } from "react";
 
 // OpenWeather API key for weather and UV data
+// Note: In production, this should be stored in environment variables
 const OPENWEATHER_API_KEY = "476e8dfbd2ea445a0f2a2d76630d978f";
 
 // Configure notification sound for better user experience
+// Using external audio file to ensure consistent playback across browsers
 const notificationSound = new Audio(
     "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
 );
 notificationSound.volume = 0.3;
+notificationSound.loop = true; // Enable sound looping for persistent notifications
 
 /**
  * Main application component for UV Protection Guide
@@ -33,6 +36,13 @@ notificationSound.volume = 0.3;
  * - Visual protection recommendations using intuitive icons
  * - Comprehensive UV impact visualization through charts
  *
+ * Technical Implementation:
+ * - Uses OpenWeather's multiple endpoints (Geocoding, Weather, UV)
+ * - Implements responsive design patterns
+ * - Features interactive UI elements with real-time updates
+ * - Includes audio-visual notification system
+ * - Provides accessibility-friendly color coding and contrast
+ *
  * @component
  * @returns {JSX.Element} The rendered UV Protection Guide application
  */
@@ -41,7 +51,7 @@ function App() {
     const homeRef = useRef(null);
     const locationRef = useRef(null);
     const uvImpactsRef = useRef(null);
-    const uvSkinToneRef = useRef(null);
+    const skinToneRef = useRef(null);
     const remindersRef = useRef(null);
 
     // State management for user interactions and data
@@ -69,7 +79,10 @@ function App() {
 
     /**
      * Handles smooth scrolling to different sections of the application
+     * Uses native smooth scrolling behavior for better performance
+     *
      * @param {React.RefObject} ref - Reference to the target section element
+     * @returns {void}
      */
     const scrollToSection = (ref) => {
         ref.current.scrollIntoView({ behavior: "smooth" });
@@ -77,29 +90,36 @@ function App() {
 
     /**
      * Handles reminder notification for sunscreen application
-     * Triggers a popup notification with sound and resets the time selection
+     * Triggers a looping popup notification with sound until user interaction
+     * Implements both visual and auditory feedback for better accessibility
+     *
+     * @returns {void}
      */
     const handleReminder = () => {
         setShowPopup(true);
-        setSelectedTime(""); // Reset the time selection
+        setSelectedTime(""); // Reset the time selection for next use
         notificationSound.play().catch((error) => {
             console.log("Audio playback failed:", error);
         });
     };
 
     /**
-     * Dismisses the reminder popup
+     * Dismisses the reminder popup and stops the notification sound
      */
     const handleDismissPopup = () => {
         setShowPopup(false);
+        notificationSound.pause(); // Stop the sound
+        notificationSound.currentTime = 0; // Reset sound to beginning
     };
 
     /**
      * Determines UV risk level and protection recommendations based on UV index
+     * Provides color-coded risk levels and specific protection measures
+     *
      * @param {number} uvIndex - UV index value from OpenWeather API (0-11+ scale)
      * @returns {Object} Protection recommendations containing:
      *   - message: Risk level description (Low, Moderate, High, etc.)
-     *   - color: Color code for visual representation
+     *   - color: Color code for visual representation (follows accessibility guidelines)
      *   - protection: Detailed protection recommendations based on UV level
      */
     const getUVMessage = (uvIndex) => {
@@ -146,7 +166,11 @@ function App() {
      * 2. Current Weather API: Retrieves current weather conditions
      * 3. UV Index API: Gets current UV radiation levels
      *
-     * The function handles all API responses and errors, updating the application state accordingly.
+     * Error Handling:
+     * - Validates location input
+     * - Handles API response errors
+     * - Provides user feedback for failed requests
+     * - Implements loading states for better UX
      *
      * @param {string} searchLocation - User input location (city name)
      * @throws {Error} When location is not found or API calls fail
@@ -231,8 +255,8 @@ function App() {
                     <li onClick={() => scrollToSection(uvImpactsRef)}>
                         UV Impacts
                     </li>
-                    <li onClick={() => scrollToSection(uvSkinToneRef)}>
-                        UV Skin Tone Protection
+                    <li onClick={() => scrollToSection(skinToneRef)}>
+                        Skin Tone
                     </li>
                     <li onClick={() => scrollToSection(remindersRef)}>
                         Reminders
@@ -248,7 +272,15 @@ function App() {
             </header>
 
             {/* Location section */}
-            <div className="App-theme" ref={locationRef}>
+            <div
+                className="App-theme"
+                ref={locationRef}
+                style={{
+                    display: "block",
+                    textAlign: "center",
+                    paddingTop: "2rem",
+                }}
+            >
                 <h1>Location</h1>
                 <form onSubmit={handleLocationSubmit} className="location-form">
                     <input
@@ -1075,7 +1107,15 @@ function App() {
             </div>
 
             {/* UV Impacts section */}
-            <div className="App-theme" ref={uvImpactsRef}>
+            <div
+                className="App-theme"
+                ref={uvImpactsRef}
+                style={{
+                    display: "block",
+                    textAlign: "center",
+                    paddingTop: "2rem",
+                }}
+            >
                 <h1>UV Impacts</h1>
                 <div
                     style={{
@@ -1100,15 +1140,24 @@ function App() {
                             width: "800px",
                             height: "500px",
                             border: "none",
+                            marginBottom: "100px",
                         }}
                         title="UV Impact Chart 2"
                     />
                 </div>
             </div>
 
-            {/* UV Skin Tone Protection section */}
-            <div className="App-theme" ref={uvSkinToneRef}>
-                <h1>UV Skin Tone Protection</h1>
+            {/* Skin Tone section */}
+            <div
+                className="App-theme"
+                ref={skinToneRef}
+                style={{
+                    display: "block",
+                    textAlign: "center",
+                    paddingTop: "2rem",
+                }}
+            >
+                <h1>Skin Tone</h1>
                 <div className="skin-tone-grid">
                     {Object.entries(skinToneColors).map(([type, color]) => {
                         const isSelected = skinTone === type;
@@ -1226,7 +1275,15 @@ function App() {
             </div>
 
             {/* Reminders section */}
-            <div className="App-theme" ref={remindersRef}>
+            <div
+                className="App-theme"
+                ref={remindersRef}
+                style={{
+                    display: "block",
+                    textAlign: "center",
+                    paddingTop: "2rem",
+                }}
+            >
                 <h1>Reminders</h1>
                 <div className="reminder-container">
                     <input
@@ -1238,15 +1295,37 @@ function App() {
                     <button
                         onClick={handleReminder}
                         className="reminder-button"
-                        disabled={!selectedTime}
+                        disabled={!selectedTime || showPopup} // Prevent multiple popups
                     >
                         Remind me
                     </button>
                 </div>
                 {showPopup && (
-                    <div className="popup-message" onClick={handleDismissPopup}>
-                        Please wear your sunscreen!
-                        <div className="popup-hint">(Click to dismiss)</div>
+                    <div
+                        className="popup-message"
+                        onClick={handleDismissPopup}
+                        style={{
+                            cursor: "pointer",
+                            animation: "pulse 2s infinite",
+                            backgroundColor: "rgba(76, 175, 80, 0.95)",
+                            border: "2px solid #45a049",
+                            color: "white",
+                            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+                            padding: "8px 15px",
+                        }}
+                    >
+                        <div style={{ fontSize: "0.9em", marginBottom: "2px" }}>
+                            Please wear your sunscreen!
+                        </div>
+                        <div
+                            style={{
+                                fontSize: "0.7em",
+                                opacity: 0.9,
+                                color: "#e8f5e9",
+                            }}
+                        >
+                            (Click to dismiss)
+                        </div>
                     </div>
                 )}
             </div>
