@@ -311,27 +311,34 @@ function App() {
             {/* UV Skin Tone Protection section */}
             <div className="App-theme" ref={uvSkinToneRef}>
                 <h1>UV Skin Tone Protection</h1>
-                <select
-                    className="skin-tone-input"
-                    value={skinTone}
-                    onChange={(e) => setSkinTone(e.target.value)}
-                >
-                    <option value="" disabled>
-                        Select your Skin Type
-                    </option>
-                    <option value="type1">Type 1 - Light pale, white</option>
-                    <option value="type2">Type 2 - White, fair</option>
-                    <option value="type3">
-                        Type 3 - Medium, white to olive
-                    </option>
-                    <option value="type4">
-                        Type 4 - Olive, moderate brown
-                    </option>
-                    <option value="type5">Type 5 - Brown, dark brown</option>
-                    <option value="type6">
-                        Type 6 - Black, brown to black
-                    </option>
-                </select>
+                <div className="skin-tone-grid">
+                    {Object.entries(skinToneColors).map(([type, color]) => {
+                        const isSelected = skinTone === type;
+                        return (
+                            <div key={type} className="skin-tone-item">
+                                <div
+                                    className={`skin-tone-square ${
+                                        isSelected ? "selected" : ""
+                                    }`}
+                                    style={{
+                                        backgroundColor: color,
+                                        cursor: "pointer",
+                                        width: "100px",
+                                        height: "100px",
+                                        border: isSelected
+                                            ? "4px solid #4CAF50"
+                                            : "2px solid #333",
+                                        borderRadius: "10px",
+                                        transition: "all 0.3s ease",
+                                    }}
+                                    onClick={() =>
+                                        setSkinTone(isSelected ? "" : type)
+                                    }
+                                />
+                            </div>
+                        );
+                    })}
+                </div>
                 {skinTone && (
                     <div
                         style={{
@@ -341,16 +348,37 @@ function App() {
                             gap: "40px",
                         }}
                     >
-                        <div
-                            style={{
-                                width: "200px",
-                                height: "200px",
-                                backgroundColor: skinToneColors[skinTone],
-                                margin: "20px auto",
-                                border: "2px solid #333",
-                                borderRadius: "40px",
-                            }}
-                        />
+                        <div style={{ textAlign: "center" }}>
+                            <div
+                                style={{
+                                    width: "200px",
+                                    height: "200px",
+                                    backgroundColor: skinToneColors[skinTone],
+                                    margin: "20px auto",
+                                    border: "2px solid #333",
+                                    borderRadius: "40px",
+                                }}
+                            />
+                            <p
+                                style={{
+                                    color: "white",
+                                    fontSize: "1.1em",
+                                    marginTop: "10px",
+                                }}
+                            >
+                                {skinTone === "type1"
+                                    ? "Light pale, white"
+                                    : skinTone === "type2"
+                                    ? "White, fair"
+                                    : skinTone === "type3"
+                                    ? "Medium, white to olive"
+                                    : skinTone === "type4"
+                                    ? "Olive, moderate brown"
+                                    : skinTone === "type5"
+                                    ? "Brown, dark brown"
+                                    : "Black, brown to black"}
+                            </p>
+                        </div>
                         <div
                             style={{
                                 textAlign: "left",
