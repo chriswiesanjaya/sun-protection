@@ -1,25 +1,40 @@
-import logo from "./sun.png";
+import clothes from "./logo/clothes.png";
+import hat from "./logo/hat.png";
+import house from "./logo/house.png";
+import sun from "./logo/sun.png";
+import sunglasses from "./logo/sunglasses.png";
+import sunscreen from "./logo/sunscreen.png";
+import tree from "./logo/tree.png";
+import umbrella from "./logo/umbrella.png";
 import "./App.css";
 import { useRef, useState } from "react";
 
+// OpenWeather API key for weather and UV data
 const OPENWEATHER_API_KEY = "476e8dfbd2ea445a0f2a2d76630d978f";
 
-// Create notification sound
+// Configure notification sound for better user experience
 const notificationSound = new Audio(
     "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
 );
-notificationSound.volume = 0.3; // Reduced volume for the shorter sound
+notificationSound.volume = 0.3;
 
 /**
  * Main application component for UV Protection Guide
- * Provides real-time weather information, UV index data, and personalized sun protection recommendations
- * based on user location and Fitzpatrick skin type scale.
+ * A comprehensive application that helps users protect themselves from harmful UV radiation
+ * by providing real-time weather information, UV index data, and personalized protection recommendations.
  *
- * Features:
- * - Location-based weather and UV index tracking
- * - Skin type-specific protection guidelines
- * - Custom reminder system for sunscreen application
+ * Key Features:
+ * - Real-time weather and UV index tracking using OpenWeather API
+ * - Location-based data retrieval and display
+ * - Personalized protection recommendations based on UV levels
+ * - Fitzpatrick skin type scale integration for customized advice
+ * - Interactive reminder system for sunscreen application
  * - Responsive navigation with smooth scrolling
+ * - Visual protection recommendations using intuitive icons
+ * - Comprehensive UV impact visualization through charts
+ *
+ * @component
+ * @returns {JSX.Element} The rendered UV Protection Guide application
  */
 function App() {
     // Refs for smooth scrolling to different sections
@@ -28,54 +43,64 @@ function App() {
     const uvImpactsRef = useRef(null);
     const uvSkinToneRef = useRef(null);
     const remindersRef = useRef(null);
-    const clothingRef = useRef(null);
 
-    // State management for user inputs and API data
-    const [selectedTime, setSelectedTime] = useState("");
-    const [showPopup, setShowPopup] = useState(false);
-    const [skinTone, setSkinTone] = useState("");
-    const [location, setLocation] = useState("");
-    const [weatherData, setWeatherData] = useState(null);
-    const [error, setError] = useState("");
-    const [loading, setLoading] = useState(false);
+    // State management for user interactions and data
+    const [selectedTime, setSelectedTime] = useState(""); // Reminder time selection
+    const [showPopup, setShowPopup] = useState(false); // Reminder popup visibility
+    const [skinTone, setSkinTone] = useState(""); // Selected Fitzpatrick skin type
+    const [location, setLocation] = useState(""); // User's location input
+    const [weatherData, setWeatherData] = useState(null); // Weather and UV data
+    const [error, setError] = useState(""); // Error message handling
+    const [loading, setLoading] = useState(false); // Loading state indicator
 
-    // Fitzpatrick scale skin tone color mapping
+    /**
+     * Fitzpatrick scale skin tone color mapping
+     * A standardized classification of human skin colors that correlates with skin's response to UV radiation
+     * @type {Object.<string, string>}
+     */
     const skinToneColors = {
-        type1: "#FFE3E3", // Light pale, white
-        type2: "#FFD8C4", // White, fair
-        type3: "#E5B887", // Medium, white to olive
-        type4: "#C99364", // Olive, moderate brown
-        type5: "#8D5524", // Brown, dark brown
-        type6: "#413333", // Black, brown to black
+        type1: "#FFE3E3", // Type I: Pale white skin, always burns, never tans
+        type2: "#FFD8C4", // Type II: White skin, usually burns, tans minimally
+        type3: "#E5B887", // Type III: White to olive skin, sometimes burns, tans uniformly
+        type4: "#C99364", // Type IV: Olive skin, rarely burns, tans easily
+        type5: "#8D5524", // Type V: Brown skin, very rarely burns, tans very easily
+        type6: "#413333", // Type VI: Dark brown to black skin, never burns, deeply pigmented
     };
 
+    /**
+     * Handles smooth scrolling to different sections of the application
+     * @param {React.RefObject} ref - Reference to the target section element
+     */
     const scrollToSection = (ref) => {
         ref.current.scrollIntoView({ behavior: "smooth" });
     };
 
     /**
-     * Sets up a reminder notification for sunscreen application
-     * Displays popup for 3 seconds
+     * Handles reminder notification for sunscreen application
+     * Triggers a popup notification with sound and resets the time selection
      */
     const handleReminder = () => {
         setShowPopup(true);
-        setSelectedTime(""); // Reset the time
+        setSelectedTime(""); // Reset the time selection
         notificationSound.play().catch((error) => {
             console.log("Audio playback failed:", error);
         });
     };
 
+    /**
+     * Dismisses the reminder popup
+     */
     const handleDismissPopup = () => {
         setShowPopup(false);
     };
 
     /**
-     * Determines UV risk level and protection recommendations based on UV index value
+     * Determines UV risk level and protection recommendations based on UV index
      * @param {number} uvIndex - UV index value from OpenWeather API (0-11+ scale)
-     * @returns {Object} Contains:
+     * @returns {Object} Protection recommendations containing:
      *   - message: Risk level description (Low, Moderate, High, etc.)
      *   - color: Color code for visual representation
-     *   - protection: Detailed protection recommendations
+     *   - protection: Detailed protection recommendations based on UV level
      */
     const getUVMessage = (uvIndex) => {
         if (uvIndex <= 2) {
@@ -116,13 +141,16 @@ function App() {
 
     /**
      * Fetches comprehensive weather and UV data from OpenWeather API
-     * Performs three sequential API calls:
-     * 1. Geocoding to convert location name to coordinates
-     * 2. Current weather data retrieval
-     * 3. UV index data retrieval
+     * Performs three sequential API calls to gather complete weather information:
+     * 1. Geocoding API: Converts location name to coordinates
+     * 2. Current Weather API: Retrieves current weather conditions
+     * 3. UV Index API: Gets current UV radiation levels
+     *
+     * The function handles all API responses and errors, updating the application state accordingly.
      *
      * @param {string} searchLocation - User input location (city name)
      * @throws {Error} When location is not found or API calls fail
+     * @async
      */
     const fetchWeatherData = async (searchLocation) => {
         try {
@@ -179,8 +207,10 @@ function App() {
 
     /**
      * Handles form submission for location search
-     * Prevents default form behavior and triggers weather data fetch
+     * Validates and processes the location input before triggering the weather data fetch
+     *
      * @param {React.FormEvent} e - Form submission event
+     * @returns {void}
      */
     const handleLocationSubmit = (e) => {
         e.preventDefault();
@@ -207,15 +237,12 @@ function App() {
                     <li onClick={() => scrollToSection(remindersRef)}>
                         Reminders
                     </li>
-                    <li onClick={() => scrollToSection(clothingRef)}>
-                        Clothing Recommendations
-                    </li>
                 </ul>
             </nav>
 
             {/* Home section */}
             <header className="App-theme" ref={homeRef}>
-                <img src={logo} className="App-logo" alt="logo" />
+                <img src={sun} className="App-logo" alt="logo" />
                 <h1>UV Protection Guide</h1>
                 <p>Scroll down to learn more</p>
             </header>
@@ -271,6 +298,777 @@ function App() {
                                     }
                                 </p>
                             )}
+                            <div className="protection-recommendations">
+                                {weatherData.uvIndex <= 2 && (
+                                    <p
+                                        style={{
+                                            display: "flex",
+                                            flexWrap: "wrap",
+                                            gap: "20px",
+                                            justifyContent: "center",
+                                            maxWidth: "840px",
+                                            margin: "0 auto",
+                                            padding: "10px",
+                                        }}
+                                    >
+                                        <div
+                                            style={{
+                                                textAlign: "center",
+                                                width: "100px",
+                                            }}
+                                        >
+                                            <img
+                                                src={sunglasses}
+                                                alt="Sunglasses"
+                                                style={{
+                                                    width: "100px",
+                                                    height: "100px",
+                                                }}
+                                            />
+                                            <p
+                                                style={{
+                                                    marginTop: "5px",
+                                                    fontSize: "0.6em",
+                                                    lineHeight: "1.2",
+                                                }}
+                                            >
+                                                Use sunglasses
+                                            </p>
+                                        </div>
+                                        <div
+                                            style={{
+                                                textAlign: "center",
+                                                width: "100px",
+                                            }}
+                                        >
+                                            <img
+                                                src={sunscreen}
+                                                alt="Sunscreen"
+                                                style={{
+                                                    width: "100px",
+                                                    height: "100px",
+                                                }}
+                                            />
+                                            <p
+                                                style={{
+                                                    marginTop: "5px",
+                                                    fontSize: "0.6em",
+                                                    lineHeight: "1.2",
+                                                }}
+                                            >
+                                                Wear sunscreen
+                                            </p>
+                                        </div>
+                                        <div
+                                            style={{
+                                                textAlign: "center",
+                                                width: "100px",
+                                            }}
+                                        >
+                                            <img
+                                                src={hat}
+                                                alt="Hat"
+                                                style={{
+                                                    width: "100px",
+                                                    height: "100px",
+                                                }}
+                                            />
+                                            <p
+                                                style={{
+                                                    marginTop: "5px",
+                                                    fontSize: "0.6em",
+                                                    lineHeight: "1.2",
+                                                }}
+                                            >
+                                                Wear a hat
+                                            </p>
+                                        </div>
+                                        <div
+                                            style={{
+                                                textAlign: "center",
+                                                width: "100px",
+                                            }}
+                                        >
+                                            <img
+                                                src={clothes}
+                                                alt="Clothes"
+                                                style={{
+                                                    width: "100px",
+                                                    height: "100px",
+                                                }}
+                                            />
+                                            <p
+                                                style={{
+                                                    marginTop: "5px",
+                                                    fontSize: "0.6em",
+                                                    lineHeight: "1.2",
+                                                }}
+                                            >
+                                                Wear protective clothing
+                                            </p>
+                                        </div>
+                                    </p>
+                                )}
+                                {weatherData.uvIndex >= 3 &&
+                                    weatherData.uvIndex <= 5 && (
+                                        <p
+                                            style={{
+                                                display: "flex",
+                                                flexWrap: "wrap",
+                                                gap: "20px",
+                                                justifyContent: "center",
+                                                maxWidth: "840px",
+                                                margin: "0 auto",
+                                                padding: "10px",
+                                            }}
+                                        >
+                                            <div
+                                                style={{
+                                                    textAlign: "center",
+                                                    width: "100px",
+                                                }}
+                                            >
+                                                <img
+                                                    src={sunglasses}
+                                                    alt="Sunglasses"
+                                                    style={{
+                                                        width: "100px",
+                                                        height: "100px",
+                                                    }}
+                                                />
+                                                <p
+                                                    style={{
+                                                        marginTop: "5px",
+                                                        fontSize: "0.6em",
+                                                        lineHeight: "1.2",
+                                                    }}
+                                                >
+                                                    Use sunglasses
+                                                </p>
+                                            </div>
+                                            <div
+                                                style={{
+                                                    textAlign: "center",
+                                                    width: "100px",
+                                                }}
+                                            >
+                                                <img
+                                                    src={sunscreen}
+                                                    alt="Sunscreen"
+                                                    style={{
+                                                        width: "100px",
+                                                        height: "100px",
+                                                    }}
+                                                />
+                                                <p
+                                                    style={{
+                                                        marginTop: "5px",
+                                                        fontSize: "0.6em",
+                                                        lineHeight: "1.2",
+                                                    }}
+                                                >
+                                                    Wear sunscreen
+                                                </p>
+                                            </div>
+                                            <div
+                                                style={{
+                                                    textAlign: "center",
+                                                    width: "100px",
+                                                }}
+                                            >
+                                                <img
+                                                    src={hat}
+                                                    alt="Hat"
+                                                    style={{
+                                                        width: "100px",
+                                                        height: "100px",
+                                                    }}
+                                                />
+                                                <p
+                                                    style={{
+                                                        marginTop: "5px",
+                                                        fontSize: "0.6em",
+                                                        lineHeight: "1.2",
+                                                    }}
+                                                >
+                                                    Wear a hat
+                                                </p>
+                                            </div>
+                                            <div
+                                                style={{
+                                                    textAlign: "center",
+                                                    width: "100px",
+                                                }}
+                                            >
+                                                <img
+                                                    src={clothes}
+                                                    alt="Clothes"
+                                                    style={{
+                                                        width: "100px",
+                                                        height: "100px",
+                                                    }}
+                                                />
+                                                <p
+                                                    style={{
+                                                        marginTop: "5px",
+                                                        fontSize: "0.6em",
+                                                        lineHeight: "1.2",
+                                                    }}
+                                                >
+                                                    Wear protective clothing
+                                                </p>
+                                            </div>
+                                            <div
+                                                style={{
+                                                    textAlign: "center",
+                                                    width: "100px",
+                                                }}
+                                            >
+                                                <img
+                                                    src={tree}
+                                                    alt="Tree"
+                                                    style={{
+                                                        width: "100px",
+                                                        height: "100px",
+                                                    }}
+                                                />
+                                                <p
+                                                    style={{
+                                                        marginTop: "5px",
+                                                        fontSize: "0.6em",
+                                                        lineHeight: "1.2",
+                                                    }}
+                                                >
+                                                    Stay in shade
+                                                </p>
+                                            </div>
+                                        </p>
+                                    )}
+                                {weatherData.uvIndex >= 6 &&
+                                    weatherData.uvIndex <= 7 && (
+                                        <p
+                                            style={{
+                                                display: "flex",
+                                                flexWrap: "wrap",
+                                                gap: "20px",
+                                                justifyContent: "center",
+                                                maxWidth: "840px",
+                                                margin: "0 auto",
+                                                padding: "10px",
+                                            }}
+                                        >
+                                            <div
+                                                style={{
+                                                    textAlign: "center",
+                                                    width: "100px",
+                                                }}
+                                            >
+                                                <img
+                                                    src={sunglasses}
+                                                    alt="Sunglasses"
+                                                    style={{
+                                                        width: "100px",
+                                                        height: "100px",
+                                                    }}
+                                                />
+                                                <p
+                                                    style={{
+                                                        marginTop: "5px",
+                                                        fontSize: "0.6em",
+                                                        lineHeight: "1.2",
+                                                    }}
+                                                >
+                                                    Use sunglasses
+                                                </p>
+                                            </div>
+                                            <div
+                                                style={{
+                                                    textAlign: "center",
+                                                    width: "100px",
+                                                }}
+                                            >
+                                                <img
+                                                    src={sunscreen}
+                                                    alt="Sunscreen"
+                                                    style={{
+                                                        width: "100px",
+                                                        height: "100px",
+                                                    }}
+                                                />
+                                                <p
+                                                    style={{
+                                                        marginTop: "5px",
+                                                        fontSize: "0.6em",
+                                                        lineHeight: "1.2",
+                                                    }}
+                                                >
+                                                    Wear sunscreen
+                                                </p>
+                                            </div>
+                                            <div
+                                                style={{
+                                                    textAlign: "center",
+                                                    width: "100px",
+                                                }}
+                                            >
+                                                <img
+                                                    src={hat}
+                                                    alt="Hat"
+                                                    style={{
+                                                        width: "100px",
+                                                        height: "100px",
+                                                    }}
+                                                />
+                                                <p
+                                                    style={{
+                                                        marginTop: "5px",
+                                                        fontSize: "0.6em",
+                                                        lineHeight: "1.2",
+                                                    }}
+                                                >
+                                                    Wear a hat
+                                                </p>
+                                            </div>
+                                            <div
+                                                style={{
+                                                    textAlign: "center",
+                                                    width: "100px",
+                                                }}
+                                            >
+                                                <img
+                                                    src={clothes}
+                                                    alt="Clothes"
+                                                    style={{
+                                                        width: "100px",
+                                                        height: "100px",
+                                                    }}
+                                                />
+                                                <p
+                                                    style={{
+                                                        marginTop: "5px",
+                                                        fontSize: "0.6em",
+                                                        lineHeight: "1.2",
+                                                    }}
+                                                >
+                                                    Wear protective clothing
+                                                </p>
+                                            </div>
+                                            <div
+                                                style={{
+                                                    textAlign: "center",
+                                                    width: "100px",
+                                                }}
+                                            >
+                                                <img
+                                                    src={tree}
+                                                    alt="Tree"
+                                                    style={{
+                                                        width: "100px",
+                                                        height: "100px",
+                                                    }}
+                                                />
+                                                <p
+                                                    style={{
+                                                        marginTop: "5px",
+                                                        fontSize: "0.6em",
+                                                        lineHeight: "1.2",
+                                                    }}
+                                                >
+                                                    Stay in shade
+                                                </p>
+                                            </div>
+                                            <div
+                                                style={{
+                                                    textAlign: "center",
+                                                    width: "100px",
+                                                }}
+                                            >
+                                                <img
+                                                    src={umbrella}
+                                                    alt="Umbrella"
+                                                    style={{
+                                                        width: "100px",
+                                                        height: "100px",
+                                                    }}
+                                                />
+                                                <p
+                                                    style={{
+                                                        marginTop: "5px",
+                                                        fontSize: "0.6em",
+                                                        lineHeight: "1.2",
+                                                    }}
+                                                >
+                                                    Reduce time in the sun
+                                                </p>
+                                            </div>
+                                        </p>
+                                    )}
+                                {weatherData.uvIndex >= 8 &&
+                                    weatherData.uvIndex <= 10 && (
+                                        <p
+                                            style={{
+                                                display: "flex",
+                                                flexWrap: "wrap",
+                                                gap: "20px",
+                                                justifyContent: "center",
+                                                maxWidth: "840px",
+                                                margin: "0 auto",
+                                                padding: "10px",
+                                            }}
+                                        >
+                                            <div
+                                                style={{
+                                                    textAlign: "center",
+                                                    width: "100px",
+                                                }}
+                                            >
+                                                <img
+                                                    src={sunglasses}
+                                                    alt="Sunglasses"
+                                                    style={{
+                                                        width: "100px",
+                                                        height: "100px",
+                                                    }}
+                                                />
+                                                <p
+                                                    style={{
+                                                        marginTop: "5px",
+                                                        fontSize: "0.6em",
+                                                        lineHeight: "1.2",
+                                                    }}
+                                                >
+                                                    Use sunglasses
+                                                </p>
+                                            </div>
+                                            <div
+                                                style={{
+                                                    textAlign: "center",
+                                                    width: "100px",
+                                                }}
+                                            >
+                                                <img
+                                                    src={sunscreen}
+                                                    alt="Sunscreen"
+                                                    style={{
+                                                        width: "100px",
+                                                        height: "100px",
+                                                    }}
+                                                />
+                                                <p
+                                                    style={{
+                                                        marginTop: "5px",
+                                                        fontSize: "0.6em",
+                                                        lineHeight: "1.2",
+                                                    }}
+                                                >
+                                                    Wear sunscreen
+                                                </p>
+                                            </div>
+                                            <div
+                                                style={{
+                                                    textAlign: "center",
+                                                    width: "100px",
+                                                }}
+                                            >
+                                                <img
+                                                    src={hat}
+                                                    alt="Hat"
+                                                    style={{
+                                                        width: "100px",
+                                                        height: "100px",
+                                                    }}
+                                                />
+                                                <p
+                                                    style={{
+                                                        marginTop: "5px",
+                                                        fontSize: "0.6em",
+                                                        lineHeight: "1.2",
+                                                    }}
+                                                >
+                                                    Wear a hat
+                                                </p>
+                                            </div>
+                                            <div
+                                                style={{
+                                                    textAlign: "center",
+                                                    width: "100px",
+                                                }}
+                                            >
+                                                <img
+                                                    src={clothes}
+                                                    alt="Clothes"
+                                                    style={{
+                                                        width: "100px",
+                                                        height: "100px",
+                                                    }}
+                                                />
+                                                <p
+                                                    style={{
+                                                        marginTop: "5px",
+                                                        fontSize: "0.6em",
+                                                        lineHeight: "1.2",
+                                                    }}
+                                                >
+                                                    Wear protective clothing
+                                                </p>
+                                            </div>
+                                            <div
+                                                style={{
+                                                    textAlign: "center",
+                                                    width: "100px",
+                                                }}
+                                            >
+                                                <img
+                                                    src={tree}
+                                                    alt="Tree"
+                                                    style={{
+                                                        width: "100px",
+                                                        height: "100px",
+                                                    }}
+                                                />
+                                                <p
+                                                    style={{
+                                                        marginTop: "5px",
+                                                        fontSize: "0.6em",
+                                                        lineHeight: "1.2",
+                                                    }}
+                                                >
+                                                    Stay in shade
+                                                </p>
+                                            </div>
+                                            <div
+                                                style={{
+                                                    textAlign: "center",
+                                                    width: "100px",
+                                                }}
+                                            >
+                                                <img
+                                                    src={umbrella}
+                                                    alt="Umbrella"
+                                                    style={{
+                                                        width: "100px",
+                                                        height: "100px",
+                                                    }}
+                                                />
+                                                <p
+                                                    style={{
+                                                        marginTop: "5px",
+                                                        fontSize: "0.6em",
+                                                        lineHeight: "1.2",
+                                                    }}
+                                                >
+                                                    Reduce time in the sun
+                                                </p>
+                                            </div>
+                                            <div
+                                                style={{
+                                                    textAlign: "center",
+                                                    width: "100px",
+                                                }}
+                                            >
+                                                <img
+                                                    src={house}
+                                                    alt="House"
+                                                    style={{
+                                                        width: "100px",
+                                                        height: "100px",
+                                                    }}
+                                                />
+                                                <p
+                                                    style={{
+                                                        marginTop: "5px",
+                                                        fontSize: "0.6em",
+                                                        lineHeight: "1.2",
+                                                    }}
+                                                >
+                                                    Avoid the sun
+                                                </p>
+                                            </div>
+                                        </p>
+                                    )}
+                                {weatherData.uvIndex > 10 && (
+                                    <p
+                                        style={{
+                                            display: "flex",
+                                            flexWrap: "wrap",
+                                            gap: "20px",
+                                            justifyContent: "center",
+                                            maxWidth: "840px",
+                                            margin: "0 auto",
+                                            padding: "10px",
+                                        }}
+                                    >
+                                        <div
+                                            style={{
+                                                textAlign: "center",
+                                                width: "100px",
+                                            }}
+                                        >
+                                            <img
+                                                src={sunglasses}
+                                                alt="Sunglasses"
+                                                style={{
+                                                    width: "100px",
+                                                    height: "100px",
+                                                }}
+                                            />
+                                            <p
+                                                style={{
+                                                    marginTop: "5px",
+                                                    fontSize: "0.6em",
+                                                    lineHeight: "1.2",
+                                                }}
+                                            >
+                                                Use sunglasses
+                                            </p>
+                                        </div>
+                                        <div
+                                            style={{
+                                                textAlign: "center",
+                                                width: "100px",
+                                            }}
+                                        >
+                                            <img
+                                                src={sunscreen}
+                                                alt="Sunscreen"
+                                                style={{
+                                                    width: "100px",
+                                                    height: "100px",
+                                                }}
+                                            />
+                                            <p
+                                                style={{
+                                                    marginTop: "5px",
+                                                    fontSize: "0.6em",
+                                                    lineHeight: "1.2",
+                                                }}
+                                            >
+                                                Wear sunscreen
+                                            </p>
+                                        </div>
+                                        <div
+                                            style={{
+                                                textAlign: "center",
+                                                width: "100px",
+                                            }}
+                                        >
+                                            <img
+                                                src={hat}
+                                                alt="Hat"
+                                                style={{
+                                                    width: "100px",
+                                                    height: "100px",
+                                                }}
+                                            />
+                                            <p
+                                                style={{
+                                                    marginTop: "5px",
+                                                    fontSize: "0.6em",
+                                                    lineHeight: "1.2",
+                                                }}
+                                            >
+                                                Wear a hat
+                                            </p>
+                                        </div>
+                                        <div
+                                            style={{
+                                                textAlign: "center",
+                                                width: "100px",
+                                            }}
+                                        >
+                                            <img
+                                                src={clothes}
+                                                alt="Clothes"
+                                                style={{
+                                                    width: "100px",
+                                                    height: "100px",
+                                                }}
+                                            />
+                                            <p
+                                                style={{
+                                                    marginTop: "5px",
+                                                    fontSize: "0.6em",
+                                                    lineHeight: "1.2",
+                                                }}
+                                            >
+                                                Wear protective clothing
+                                            </p>
+                                        </div>
+                                        <div
+                                            style={{
+                                                textAlign: "center",
+                                                width: "100px",
+                                            }}
+                                        >
+                                            <img
+                                                src={tree}
+                                                alt="Tree"
+                                                style={{
+                                                    width: "100px",
+                                                    height: "100px",
+                                                }}
+                                            />
+                                            <p
+                                                style={{
+                                                    marginTop: "5px",
+                                                    fontSize: "0.6em",
+                                                    lineHeight: "1.2",
+                                                }}
+                                            >
+                                                Stay in shade
+                                            </p>
+                                        </div>
+                                        <div
+                                            style={{
+                                                textAlign: "center",
+                                                width: "100px",
+                                            }}
+                                        >
+                                            <img
+                                                src={umbrella}
+                                                alt="Umbrella"
+                                                style={{
+                                                    width: "100px",
+                                                    height: "100px",
+                                                }}
+                                            />
+                                            <p
+                                                style={{
+                                                    marginTop: "5px",
+                                                    fontSize: "0.6em",
+                                                    lineHeight: "1.2",
+                                                }}
+                                            >
+                                                Reduce time in the sun
+                                            </p>
+                                        </div>
+                                        <div
+                                            style={{
+                                                textAlign: "center",
+                                                width: "100px",
+                                            }}
+                                        >
+                                            <img
+                                                src={house}
+                                                alt="House"
+                                                style={{
+                                                    width: "100px",
+                                                    height: "100px",
+                                                }}
+                                            />
+                                            <p
+                                                style={{
+                                                    marginTop: "5px",
+                                                    fontSize: "0.6em",
+                                                    lineHeight: "1.2",
+                                                }}
+                                            >
+                                                Avoid the sun
+                                            </p>
+                                        </div>
+                                    </p>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}
@@ -451,12 +1249,6 @@ function App() {
                         <div className="popup-hint">(Click to dismiss)</div>
                     </div>
                 )}
-            </div>
-
-            {/* Clothing Recommendations section */}
-            <div className="App-theme" ref={clothingRef}>
-                <h1>Clothing Recommendations</h1>
-                {/* TODO: add clothing recommendations based on UV index */}
             </div>
         </div>
     );
