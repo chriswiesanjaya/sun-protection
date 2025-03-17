@@ -5,13 +5,33 @@ import { useRef, useState } from "react";
 
 const OPENWEATHER_API_KEY = "476e8dfbd2ea445a0f2a2d76630d978f";
 
+// Create notification sound
+const notificationSound = new Audio(
+    "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
+);
+notificationSound.volume = 0.3; // Reduced volume for the shorter sound
+
+/**
+ * Main application component for UV Protection Guide
+ * Provides real-time weather information, UV index data, and personalized sun protection recommendations
+ * based on user location and Fitzpatrick skin type scale.
+ *
+ * Features:
+ * - Location-based weather and UV index tracking
+ * - Skin type-specific protection guidelines
+ * - Custom reminder system for sunscreen application
+ * - Responsive navigation with smooth scrolling
+ */
 function App() {
+    // Refs for smooth scrolling to different sections
     const homeRef = useRef(null);
     const locationRef = useRef(null);
     const uvImpactsRef = useRef(null);
     const uvSkinToneRef = useRef(null);
     const remindersRef = useRef(null);
     const clothingRef = useRef(null);
+
+    // State management for user inputs and API data
     const [selectedTime, setSelectedTime] = useState("");
     const [showPopup, setShowPopup] = useState(false);
     const [skinTone, setSkinTone] = useState("");
@@ -20,52 +40,91 @@ function App() {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
+    // Fitzpatrick scale skin tone color mapping
     const skinToneColors = {
-        type1: "#FFE3E3",
-        type2: "#FFD8C4",
-        type3: "#E5B887",
-        type4: "#C99364",
-        type5: "#8D5524",
-        type6: "#413333",
+        type1: "#FFE3E3", // Light pale, white
+        type2: "#FFD8C4", // White, fair
+        type3: "#E5B887", // Medium, white to olive
+        type4: "#C99364", // Olive, moderate brown
+        type5: "#8D5524", // Brown, dark brown
+        type6: "#413333", // Black, brown to black
     };
 
     const scrollToSection = (ref) => {
         ref.current.scrollIntoView({ behavior: "smooth" });
     };
 
+    /**
+     * Sets up a reminder notification for sunscreen application
+     * Displays popup for 3 seconds
+     */
     const handleReminder = () => {
         setShowPopup(true);
         setSelectedTime(""); // Reset the time
-        setTimeout(() => {
-            setShowPopup(false);
-        }, 3000); // Hide popup after 3 seconds
+        notificationSound.play().catch((error) => {
+            console.log("Audio playback failed:", error);
+        });
     };
 
+    const handleDismissPopup = () => {
+        setShowPopup(false);
+    };
+
+    /**
+     * Determines UV risk level and protection recommendations based on UV index value
+     * @param {number} uvIndex - UV index value from OpenWeather API (0-11+ scale)
+     * @returns {Object} Contains:
+     *   - message: Risk level description (Low, Moderate, High, etc.)
+     *   - color: Color code for visual representation
+     *   - protection: Detailed protection recommendations
+     */
     const getUVMessage = (uvIndex) => {
         if (uvIndex <= 2) {
-            return { message: "Low", color: "green" };
+            return {
+                message: "Low",
+                color: "green",
+                protection:
+                    "You can safely stay outside with minimal protection",
+            };
         } else if (uvIndex >= 3 && uvIndex <= 5) {
             return {
                 message: "Moderate",
                 color: "yellow",
-                protection: "Sun protection is recommended",
+                protection: "Take precautions - cover up and use sunscreen",
             };
         } else if (uvIndex >= 6 && uvIndex <= 7) {
             return {
                 message: "High",
                 color: "orange",
-                protection: "Sun protection is necessary",
+                protection:
+                    "Protection required. Reduce time in the sun between 11 am and 4 pm",
             };
-        } else {
+        } else if (uvIndex >= 8 && uvIndex <= 10) {
             return {
                 message: "Very High",
                 color: "red",
                 protection:
-                    "Not recommended to go outside or be exposed to the sun for long periods of time",
+                    "Extra precautions needed. Minimize sun exposure during midday hours",
+            };
+        } else {
+            return {
+                message: "Extreme",
+                color: "purple",
+                protection: `EXTREME RISK! Avoid sun exposure during midday hours ${uvIndex}`,
             };
         }
     };
 
+    /**
+     * Fetches comprehensive weather and UV data from OpenWeather API
+     * Performs three sequential API calls:
+     * 1. Geocoding to convert location name to coordinates
+     * 2. Current weather data retrieval
+     * 3. UV index data retrieval
+     *
+     * @param {string} searchLocation - User input location (city name)
+     * @throws {Error} When location is not found or API calls fail
+     */
     const fetchWeatherData = async (searchLocation) => {
         try {
             setLoading(true);
@@ -99,10 +158,13 @@ function App() {
             const timezoneOffset = weatherResult.timezone;
             const localTime = new Date(Date.now() + timezoneOffset * 1000);
 
+            // Ensure UV index is a rounded integer
+            const uvIndex = Math.round(Number(uvData.value));
+
             setWeatherData({
                 temperature: Math.round(weatherResult.main.temp),
                 description: weatherResult.weather[0].description,
-                uvIndex: uvData.value,
+                uvIndex: uvIndex,
                 icon: weatherResult.weather[0].icon,
                 location: name,
                 country: country,
@@ -116,6 +178,11 @@ function App() {
         }
     };
 
+    /**
+     * Handles form submission for location search
+     * Prevents default form behavior and triggers weather data fetch
+     * @param {React.FormEvent} e - Form submission event
+     */
     const handleLocationSubmit = (e) => {
         e.preventDefault();
         if (location.trim()) {
@@ -179,20 +246,8 @@ function App() {
                             <h2>
                                 {weatherData.location}, {weatherData.country}
                             </h2>
-                            <p>
-                                {weatherData.time.toLocaleTimeString("en-US", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                    hour12: true,
-                                    timeZone: "UTC",
-                                })}
-                            </p>
                         </div>
                         <div className="weather-info">
-                            <img
-                                src={`http://openweathermap.org/img/wn/${weatherData.icon}@2x.png`}
-                                alt="Weather icon"
-                            />
                             <h2>{weatherData.temperature}°C</h2>
                             <p>{weatherData.description}</p>
                         </div>
@@ -295,7 +350,6 @@ function App() {
                                 style={{
                                     marginTop: "10px",
                                     padding: "8px",
-                                    // backgroundColor: "#f8f8f8",
                                     borderRadius: "5px",
                                 }}
                             >
@@ -319,7 +373,6 @@ function App() {
                         </div>
                     </div>
                 )}
-                {/* TODO: add sunscreen recommendation based on skin tone */}
             </div>
 
             {/* Reminders section */}
@@ -341,8 +394,9 @@ function App() {
                     </button>
                 </div>
                 {showPopup && (
-                    <div className="popup-message">
+                    <div className="popup-message" onClick={handleDismissPopup}>
                         Please wear your sunscreen!
+                        <div className="popup-hint">(Click to dismiss)</div>
                     </div>
                 )}
             </div>
