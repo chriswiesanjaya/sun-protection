@@ -1,5 +1,4 @@
 import logo from "./sun.png";
-import chart1 from "./chart1.png";
 import "./App.css";
 import { useRef, useState } from "react";
 
@@ -110,7 +109,7 @@ function App() {
             return {
                 message: "Extreme",
                 color: "purple",
-                protection: `EXTREME RISK! Avoid sun exposure during midday hours ${uvIndex}`,
+                protection: `EXTREME RISK! Avoid sun exposure during midday hours`,
             };
         }
     };
@@ -280,8 +279,33 @@ function App() {
             {/* UV Impacts section */}
             <div className="App-theme" ref={uvImpactsRef}>
                 <h1>UV Impacts</h1>
-                <img src={chart1} className="chart-logo" alt="logo" />
-                {/* TODO: Add 1 more chart */}
+                <div
+                    style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "100px",
+                    }}
+                >
+                    <iframe
+                        src="/chart1-plot.html"
+                        style={{
+                            width: "800px",
+                            height: "500px",
+                            border: "none",
+                        }}
+                        title="UV Impact Chart 1"
+                    />
+                    <iframe
+                        src="/chart2-plot.html"
+                        style={{
+                            width: "800px",
+                            height: "500px",
+                            border: "none",
+                        }}
+                        title="UV Impact Chart 2"
+                    />
+                </div>
             </div>
 
             {/* UV Skin Tone Protection section */}
