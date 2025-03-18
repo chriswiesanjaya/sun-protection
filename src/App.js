@@ -267,8 +267,9 @@ function App() {
             {/* Home section */}
             <header className="App-theme" ref={homeRef}>
                 <img src={sun} className="App-logo" alt="logo" />
-                <h1>UV Protection Guide</h1>
-                <p>Scroll down to learn more</p>
+                <h1>Your Skin Called — It Needs Protection!</h1>
+                <p>Scroll down to be sun-smart, not sun-stupid</p>
+                <p>↓</p>
             </header>
 
             {/* Location section */}
