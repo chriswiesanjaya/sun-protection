@@ -23,53 +23,137 @@ notificationSound.loop = true; // Enable sound looping for persistent notificati
 
 /**
  * Main application component for UV Protection Guide
- * A comprehensive application that helps users protect themselves from harmful UV radiation
- * by providing real-time weather information, UV index data, and personalized protection recommendations.
+ * A web application that helps users protect themselves from harmful UV radiation
+ * by providing real-time weather data and personalized protection recommendations.
  *
- * Key Features:
- * - Real-time weather and UV index tracking using OpenWeather API
- * - Location-based data retrieval and display
- * - Personalized protection recommendations based on UV levels
- * - Fitzpatrick skin type scale integration for customized advice
- * - Interactive reminder system for sunscreen application
- * - Responsive navigation with smooth scrolling
- * - Visual protection recommendations using intuitive icons
- * - Comprehensive UV impact visualization through charts
- *
- * Technical Implementation:
- * - Uses OpenWeather's multiple endpoints (Geocoding, Weather, UV)
- * - Implements responsive design patterns
- * - Features interactive UI elements with real-time updates
- * - Includes audio-visual notification system
- * - Provides accessibility-friendly color coding and contrast
+ * Features:
+ * - Real-time UV index and weather data via OpenWeather API
+ * - Fitzpatrick skin type assessment
+ * - Location-based UV protection recommendations
+ * - Visual protection guides with icons
+ * - UV impact data visualization
+ * - Sunscreen reminder system
  *
  * @component
  * @returns {JSX.Element} The rendered UV Protection Guide application
  */
 function App() {
-    // Refs for smooth scrolling to different sections
+    // Navigation refs for smooth scrolling
     const homeRef = useRef(null);
     const locationRef = useRef(null);
     const uvImpactsRef = useRef(null);
-    const skinToneRef = useRef(null);
+    const skinTypeRef = useRef(null);
     const remindersRef = useRef(null);
     const navRef = useRef(null);
 
-    // State management for user interactions and data
-    const [selectedTime, setSelectedTime] = useState(""); // Reminder time selection
-    const [showPopup, setShowPopup] = useState(false); // Reminder popup visibility
-    const [skinTone, setSkinTone] = useState(""); // Selected Fitzpatrick skin type
-    const [location, setLocation] = useState(""); // User's location input
-    const [weatherData, setWeatherData] = useState(null); // Weather and UV data
-    const [error, setError] = useState(""); // Error message handling
-    const [loading, setLoading] = useState(false); // Loading state indicator
+    // State for reminders functionality
+    const [selectedTime, setSelectedTime] = useState("");
+    const [showPopup, setShowPopup] = useState(false);
+
+    // State for location and weather data
+    const [location, setLocation] = useState("");
+    const [weatherData, setWeatherData] = useState(null);
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    // State for skin type questionnaire
+    const [answers, setAnswers] = useState(Array(10).fill(null));
+    const [currentQuestion, setCurrentQuestion] = useState(0);
+    const [allQuestionsAnswered, setAllQuestionsAnswered] = useState(false);
+    const [determinedSkinType, setDeterminedSkinType] = useState("");
+    const [totalScore, setTotalScore] = useState(0);
+
+    const questions = [
+        {
+            text: "What color are your eyes?",
+            options: [
+                "Light blue, gray, green",
+                "Blue, gray, or green",
+                "Blue",
+                "Dark Brown",
+                "Brownish Black",
+            ],
+        },
+        {
+            text: "What is your natural hair color?",
+            options: [
+                "Sandy red",
+                "Blonde",
+                "Chestnut/Dark Blonde",
+                "Dark brown",
+                "Black",
+            ],
+        },
+        {
+            text: "What is your skin color (unexposed areas)?",
+            options: [
+                "Reddish",
+                "Very Pale",
+                "Pale with a beige tint",
+                "Light brown",
+                "Dark brown",
+            ],
+        },
+        {
+            text: "Do you have freckles on unexposed areas?",
+            options: ["Many", "Several", "Few", "Incidental", "None"],
+        },
+        {
+            text: "What happens when you stay too long in the sun?",
+            options: [
+                "Painful redness, blistering, peeling",
+                "Blistering followed by peeling",
+                "Burns sometimes followed by peeling",
+                "Rare burns",
+                "Never had burns",
+            ],
+        },
+        {
+            text: "To what degree do you turn brown?",
+            options: [
+                "Hardly or not at all",
+                "Light color tan",
+                "Reasonable tan",
+                "Tan very easily",
+                "Turn dark brown quickly",
+            ],
+        },
+        {
+            text: "Do you turn brown after several hours of sun exposure?",
+            options: ["Never", "Seldom", "Sometimes", "Often", "Always"],
+        },
+        {
+            text: "How does your face react to the sun?",
+            options: [
+                "Very sensitive",
+                "Sensitive",
+                "Normal",
+                "Very resistant",
+                "Never had a problem",
+            ],
+        },
+        {
+            text: "When did you last expose your body to the sun (or artificial sunlamp/tanning cream)?",
+            options: [
+                "More than 3 months ago",
+                "2-3 months ago",
+                "1-2 months ago",
+                "Less than a month ago",
+                "Less than 2 weeks ago",
+            ],
+        },
+        {
+            text: "Do you expose your face to the sun?",
+            options: ["Never", "Hardly ever", "Sometimes", "Often", "Always"],
+        },
+    ];
 
     /**
-     * Fitzpatrick scale skin tone color mapping
+     * Fitzpatrick scale skin type color mapping
      * A standardized classification of human skin colors that correlates with skin's response to UV radiation
      * @type {Object.<string, string>}
      */
-    const skinToneColors = {
+    const skinTypeColors = {
         type1: "#FFE3E3", // Type I: Pale white skin, always burns, never tans
         type2: "#FFD8C4", // Type II: White skin, usually burns, tans minimally
         type3: "#E5B887", // Type III: White to olive skin, sometimes burns, tans uniformly
@@ -100,10 +184,7 @@ function App() {
 
     /**
      * Handles reminder notification for sunscreen application
-     * Triggers a looping popup notification with sound until user interaction
-     * Implements both visual and auditory feedback for better accessibility
-     *
-     * @returns {void}
+     * Triggers a popup notification with sound until dismissed
      */
     const handleReminder = () => {
         setShowPopup(true);
@@ -126,14 +207,9 @@ function App() {
     };
 
     /**
-     * Determines UV risk level and protection recommendations based on UV index
-     * Provides color-coded risk levels and specific protection measures
-     *
-     * @param {number} uvIndex - UV index value from OpenWeather API (0-11+ scale)
-     * @returns {Object} Protection recommendations containing:
-     *   - message: Risk level description (Low, Moderate, High, etc.)
-     *   - color: Color code for visual representation (follows accessibility guidelines)
-     *   - protection: Detailed protection recommendations based on UV level
+     * Determines UV risk level and provides protection recommendations
+     * @param {number} uvIndex - UV index value (0-11+ scale)
+     * @returns {Object} Protection recommendations with message, color, and specific measures
      */
     const getUVMessage = (uvIndex) => {
         if (uvIndex <= 2) {
@@ -172,21 +248,10 @@ function App() {
     };
 
     /**
-     * Fetches comprehensive weather and UV data from OpenWeather API
-     * Performs three sequential API calls to gather complete weather information:
-     * 1. Geocoding API: Converts location name to coordinates
-     * 2. Current Weather API: Retrieves current weather conditions
-     * 3. UV Index API: Gets current UV radiation levels
-     *
-     * Error Handling:
-     * - Validates location input
-     * - Handles API response errors
-     * - Provides user feedback for failed requests
-     * - Implements loading states for better UX
-     *
-     * @param {string} searchLocation - User input location (city name)
+     * Fetches weather and UV data from OpenWeather API
+     * Makes sequential API calls for geocoding, weather, and UV data
+     * @param {string} searchLocation - User input location
      * @throws {Error} When location is not found or API calls fail
-     * @async
      */
     const fetchWeatherData = async (searchLocation) => {
         try {
@@ -243,16 +308,68 @@ function App() {
 
     /**
      * Handles form submission for location search
-     * Validates and processes the location input before triggering the weather data fetch
-     *
      * @param {React.FormEvent} e - Form submission event
-     * @returns {void}
      */
     const handleLocationSubmit = (e) => {
         e.preventDefault();
         if (location.trim()) {
             fetchWeatherData(location.trim());
         }
+    };
+
+    /**
+     * Handles answer selection in the skin type questionnaire
+     * Updates answers and calculates skin type when all questions are answered
+     * @param {number} answer - Selected answer value (0-4)
+     */
+    const handleAnswer = (answer) => {
+        const newAnswers = [...answers];
+        newAnswers[currentQuestion] = answer;
+        setAnswers(newAnswers);
+
+        // Calculate total score if all questions are answered
+        if (newAnswers.every((a) => a !== null)) {
+            const score = newAnswers.reduce((acc, curr) => acc + curr, 0);
+            setTotalScore(score);
+
+            // Determine skin type based on new scoring system
+            if (score <= 6) {
+                setDeterminedSkinType("type1");
+            } else if (score <= 13) {
+                setDeterminedSkinType("type2");
+            } else if (score <= 20) {
+                setDeterminedSkinType("type3");
+            } else if (score <= 27) {
+                setDeterminedSkinType("type4");
+            } else if (score <= 34) {
+                setDeterminedSkinType("type5");
+            } else {
+                setDeterminedSkinType("type6"); // Score 35-40
+            }
+        }
+    };
+
+    const handleNextQuestion = () => {
+        if (currentQuestion < questions.length - 1) {
+            setCurrentQuestion(currentQuestion + 1);
+        }
+    };
+
+    const handlePrevQuestion = () => {
+        if (currentQuestion > 0) {
+            setCurrentQuestion(currentQuestion - 1);
+        }
+    };
+
+    /**
+     * Resets the questionnaire
+     */
+    const handleReset = () => {
+        setAnswers(Array(10).fill(null));
+        setCurrentQuestion(0);
+        setAllQuestionsAnswered(false);
+        setDeterminedSkinType("");
+        setTotalScore(0);
     };
 
     return (
@@ -314,9 +431,9 @@ function App() {
                             padding: "8px 15px",
                             cursor: "pointer",
                         }}
-                        onClick={() => scrollToSection(skinToneRef)}
+                        onClick={() => scrollToSection(skinTypeRef)}
                     >
-                        Skin Tone
+                        Skin Type
                     </li>
                     <li
                         style={{
@@ -351,7 +468,8 @@ function App() {
                     paddingTop: "2rem",
                 }}
             >
-                <h1>Where's the Sun? Tell Us Your Location</h1>
+                <h1>Where's the Sun?</h1>
+                <p>Tell us your location</p>
                 <p>↓</p>
                 <form onSubmit={handleLocationSubmit} className="location-form">
                     <input
@@ -1188,6 +1306,9 @@ function App() {
                 }}
             >
                 <h1>UV Impacts</h1>
+                <p>Click on the logo to learn more</p>
+                <p>↓</p>
+
                 <div
                     style={{
                         display: "flex",
@@ -1248,136 +1369,364 @@ function App() {
                 </div>
             </div>
 
-            {/* Skin Tone section */}
+            {/* Skin Type section */}
             <div
                 className="App-theme"
-                ref={skinToneRef}
+                ref={skinTypeRef}
                 style={{
                     display: "block",
                     textAlign: "center",
                     paddingTop: "2rem",
                 }}
             >
-                <h1>Skin Tone</h1>
-                <div className="skin-tone-grid">
-                    {Object.entries(skinToneColors).map(([type, color]) => {
-                        const isSelected = skinTone === type;
-                        return (
-                            <div key={type} className="skin-tone-item">
-                                <div
-                                    className={`skin-tone-square ${
-                                        isSelected ? "selected" : ""
-                                    }`}
-                                    style={{
-                                        backgroundColor: color,
-                                        cursor: "pointer",
-                                        width: "100px",
-                                        height: "100px",
-                                        border: isSelected
-                                            ? "4px solid #4CAF50"
-                                            : "2px solid #333",
-                                        borderRadius: "10px",
-                                        transition: "all 0.3s ease",
-                                    }}
-                                    onClick={() =>
-                                        setSkinTone(isSelected ? "" : type)
-                                    }
-                                />
-                            </div>
-                        );
-                    })}
-                </div>
-                {skinTone && (
-                    <div
-                        style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: "40px",
-                            flexWrap: "wrap",
-                            padding: "0 15px",
-                            width: "100%",
-                            maxWidth: "100%",
-                            boxSizing: "border-box",
-                        }}
-                    >
-                        <div style={{ textAlign: "center" }}>
-                            <div
-                                style={{
-                                    width: "200px",
-                                    height: "200px",
-                                    backgroundColor: skinToneColors[skinTone],
-                                    margin: "20px auto",
-                                    border: "2px solid #333",
-                                    borderRadius: "40px",
-                                }}
-                            />
-                            <p
-                                style={{
-                                    color: "white",
-                                    fontSize: "1.1em",
-                                    marginTop: "10px",
-                                }}
-                            >
-                                {skinTone === "type1"
-                                    ? "Light pale, white"
-                                    : skinTone === "type2"
-                                    ? "White, fair"
-                                    : skinTone === "type3"
-                                    ? "Medium, white to olive"
-                                    : skinTone === "type4"
-                                    ? "Olive, moderate brown"
-                                    : skinTone === "type5"
-                                    ? "Brown, dark brown"
-                                    : "Black, brown to black"}
-                            </p>
-                        </div>
+                <h1>Skin Type</h1>
+                <p>Answer this questionnaire to determine your shade</p>
+                <p>↓</p>
+                <div
+                    style={{
+                        maxWidth: "800px",
+                        margin: "0 auto",
+                        padding: "20px",
+                    }}
+                >
+                    <div className="questionnaire-container">
                         <div
+                            className="question-card"
                             style={{
-                                textAlign: "left",
+                                backgroundColor: "rgba(255, 255, 255, 0.1)",
                                 padding: "20px",
                                 borderRadius: "10px",
-                                border: "1px solid rgba(255, 255, 255, 0.5)",
+                                marginBottom: "20px",
+                                height: "500px", // Fixed height for the card
+                                display: "flex",
+                                flexDirection: "column",
                             }}
                         >
-                            <h3 style={{ marginTop: 0 }}>
-                                Sunscreen Guidelines:
-                            </h3>
-                            <p>For full body application:</p>
-                            <ul style={{ margin: 0 }}>
-                                <li>Face and neck: 1 teaspoon</li>
-                                <li>Each arm: 1 teaspoon</li>
-                                <li>Chest and abdomen: 2 teaspoons</li>
-                                <li>Back: 2 teaspoons</li>
-                                <li>Each leg: 2 teaspoons</li>
-                            </ul>
-                            <p
+                            <div
                                 style={{
-                                    marginTop: "10px",
-                                    padding: "8px",
-                                    borderRadius: "5px",
+                                    height: "80px", // Fixed height for question area
+                                    marginBottom: "20px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
                                 }}
                             >
-                                <strong>Total: ~10 teaspoons</strong> for full
-                                body coverage
-                            </p>
-                            <p
+                                <h3
+                                    style={{
+                                        fontSize: "1rem",
+                                        margin: 0,
+                                        lineHeight: "1.4",
+                                    }}
+                                >
+                                    {questions[currentQuestion].text}
+                                </h3>
+                            </div>
+                            <div
+                                className="options"
                                 style={{
-                                    fontSize: "0.9em",
-                                    color: "#666",
-                                    marginTop: "10px",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                    flex: 1, // Take remaining space
+                                    marginBottom: "20px",
                                 }}
                             >
-                                {skinTone === "type1" || skinTone === "type2"
-                                    ? "⚠️ Your skin type burns easily. Reapply every 1-2 hours."
-                                    : skinTone === "type3" ||
-                                      skinTone === "type4"
-                                    ? "⚠️ Reapply every 2-3 hours when in sun."
-                                    : "⚠️ While more naturally protected, still reapply every 2-3 hours for best protection."}
-                            </p>
+                                {questions[currentQuestion].options.map(
+                                    (option, index) => (
+                                        <button
+                                            key={index}
+                                            onClick={() => handleAnswer(index)}
+                                            style={{
+                                                padding: "10px 20px",
+                                                backgroundColor:
+                                                    answers[currentQuestion] ===
+                                                    index
+                                                        ? "#4CAF50"
+                                                        : "transparent",
+                                                border: "2px solid #4CAF50",
+                                                borderRadius: "5px",
+                                                color: "white",
+                                                cursor: "pointer",
+                                                transition: "all 0.3s ease",
+                                                width: "100%",
+                                                textAlign: "left",
+                                            }}
+                                        >
+                                            {option}
+                                        </button>
+                                    )
+                                )}
+                            </div>
+                            <div
+                                style={{
+                                    marginTop: "auto", // Push to bottom
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "center",
+                                        marginBottom: "20px",
+                                    }}
+                                >
+                                    <button
+                                        onClick={handlePrevQuestion}
+                                        disabled={currentQuestion === 0}
+                                        style={{
+                                            padding: "10px 20px",
+                                            backgroundColor: "transparent",
+                                            border: "none",
+                                            color:
+                                                currentQuestion === 0
+                                                    ? "#666"
+                                                    : "white",
+                                            cursor:
+                                                currentQuestion === 0
+                                                    ? "not-allowed"
+                                                    : "pointer",
+                                            fontSize: "24px",
+                                        }}
+                                    >
+                                        ←
+                                    </button>
+                                    <span>{`Question ${
+                                        currentQuestion + 1
+                                    } of ${questions.length}`}</span>
+                                    <button
+                                        onClick={handleNextQuestion}
+                                        disabled={
+                                            currentQuestion ===
+                                            questions.length - 1
+                                        }
+                                        style={{
+                                            padding: "10px 20px",
+                                            backgroundColor: "transparent",
+                                            border: "none",
+                                            color:
+                                                currentQuestion ===
+                                                questions.length - 1
+                                                    ? "#666"
+                                                    : "white",
+                                            cursor:
+                                                currentQuestion ===
+                                                questions.length - 1
+                                                    ? "not-allowed"
+                                                    : "pointer",
+                                            fontSize: "24px",
+                                        }}
+                                    >
+                                        →
+                                    </button>
+                                </div>
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        justifyContent: "center",
+                                        gap: "10px",
+                                    }}
+                                >
+                                    <button
+                                        onClick={handleReset}
+                                        style={{
+                                            padding: "10px 20px",
+                                            backgroundColor: "#ff4444",
+                                            border: "none",
+                                            borderRadius: "5px",
+                                            color: "white",
+                                            cursor: "pointer",
+                                        }}
+                                    >
+                                        Reset
+                                    </button>
+                                    {answers.every((a) => a !== null) && (
+                                        <button
+                                            onClick={() =>
+                                                setAllQuestionsAnswered(true)
+                                            }
+                                            style={{
+                                                padding: "10px 20px",
+                                                backgroundColor: "#4CAF50",
+                                                border: "none",
+                                                borderRadius: "5px",
+                                                color: "white",
+                                                cursor: "pointer",
+                                            }}
+                                        >
+                                            Show Result
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </div>
-                )}
+
+                    {/* Results section */}
+                    {allQuestionsAnswered && (
+                        <div
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: "40px",
+                                flexWrap: "wrap",
+                                padding: "20px 15px",
+                                width: "100%",
+                                maxWidth: "100%",
+                                boxSizing: "border-box",
+                                marginTop: "30px",
+                                backgroundColor: "rgba(255, 255, 255, 0.1)",
+                                borderRadius: "10px",
+                            }}
+                        >
+                            <div
+                                style={{
+                                    width: "100%",
+                                    marginBottom: "20px",
+                                    textAlign: "center",
+                                }}
+                            >
+                                <h2>Your Results</h2>
+                                <p>Total Score: {totalScore} points</p>
+                            </div>
+                            <div style={{ textAlign: "center" }}>
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        justifyContent: "center",
+                                        gap: "20px",
+                                        flexWrap: "wrap",
+                                        margin: "20px auto",
+                                    }}
+                                >
+                                    {Object.entries(skinTypeColors).map(
+                                        ([type, color]) => (
+                                            <div
+                                                key={type}
+                                                style={{
+                                                    display: "flex",
+                                                    flexDirection: "column",
+                                                    alignItems: "center",
+                                                    gap: "10px",
+                                                }}
+                                            >
+                                                <div
+                                                    style={{
+                                                        width: "100px",
+                                                        height: "100px",
+                                                        backgroundColor: color,
+                                                        border:
+                                                            type ===
+                                                            determinedSkinType
+                                                                ? "4px solid #4CAF50"
+                                                                : "2px solid #333",
+                                                        borderRadius: "20px",
+                                                        transition:
+                                                            "all 0.3s ease",
+                                                        transform:
+                                                            type ===
+                                                            determinedSkinType
+                                                                ? "scale(1.1)"
+                                                                : "scale(1)",
+                                                    }}
+                                                />
+                                                <p
+                                                    style={{
+                                                        color: "white",
+                                                        fontSize: "0.9em",
+                                                        margin: 0,
+                                                        fontWeight:
+                                                            type ===
+                                                            determinedSkinType
+                                                                ? "bold"
+                                                                : "normal",
+                                                    }}
+                                                >
+                                                    {type.replace(
+                                                        "type",
+                                                        "Type "
+                                                    )}
+                                                </p>
+                                            </div>
+                                        )
+                                    )}
+                                </div>
+                                <p
+                                    style={{
+                                        color: "white",
+                                        fontSize: "1.1em",
+                                        marginTop: "20px",
+                                        padding: "10px",
+                                        backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                        borderRadius: "5px",
+                                        display: "inline-block",
+                                    }}
+                                >
+                                    {determinedSkinType === "type1"
+                                        ? "Fitzpatrick Type I: Pale white skin"
+                                        : determinedSkinType === "type2"
+                                        ? "Fitzpatrick Type II: White skin"
+                                        : determinedSkinType === "type3"
+                                        ? "Fitzpatrick Type III: White to olive skin"
+                                        : determinedSkinType === "type4"
+                                        ? "Fitzpatrick Type IV: Olive skin"
+                                        : determinedSkinType === "type5"
+                                        ? "Fitzpatrick Type V: Brown skin"
+                                        : "Fitzpatrick Type VI: Dark brown to black skin"}
+                                </p>
+                            </div>
+                            <div
+                                style={{
+                                    textAlign: "left",
+                                    padding: "20px",
+                                    borderRadius: "10px",
+                                    border: "1px solid rgba(255, 255, 255, 0.5)",
+                                }}
+                            >
+                                <h3 style={{ marginTop: 0 }}>
+                                    Sun Protection Guidelines:
+                                </h3>
+                                <p style={{ marginBottom: "10px" }}>
+                                    <strong>For full body application:</strong>
+                                </p>
+                                <ul style={{ margin: 0, marginBottom: "15px" }}>
+                                    <li>Face and neck: 1 teaspoon</li>
+                                    <li>Each arm: 1 teaspoon</li>
+                                    <li>Chest and abdomen: 2 teaspoons</li>
+                                    <li>Back: 2 teaspoons</li>
+                                    <li>Each leg: 2 teaspoons</li>
+                                </ul>
+                                <p
+                                    style={{
+                                        fontSize: "0.9em",
+                                        fontStyle: "italic",
+                                        marginBottom: "15px",
+                                    }}
+                                >
+                                    Total: ~10 teaspoons for full body coverage
+                                </p>
+                                <p
+                                    style={{
+                                        fontSize: "0.9em",
+                                        color: "#666",
+                                        marginTop: "10px",
+                                        backgroundColor: "rgba(0, 0, 0, 0.2)",
+                                        padding: "8px",
+                                        borderRadius: "5px",
+                                    }}
+                                >
+                                    {determinedSkinType === "type1" ||
+                                    determinedSkinType === "type2"
+                                        ? "🔥 Easy burner! Reapply every 1-2 hours."
+                                        : determinedSkinType === "type3" ||
+                                          determinedSkinType === "type4"
+                                        ? "☀️ Stay sun-safe! Reapply every 2-3 hours."
+                                        : "🛡️ Better protected, but still reapply every 2-3 hours!"}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Reminders section */}
@@ -1391,6 +1740,8 @@ function App() {
                 }}
             >
                 <h1>Reminders</h1>
+                <p>Don't forget to re-apply sunscreen!</p>
+                <p>↓</p>
                 <div className="reminder-container">
                     <input
                         type="time"
