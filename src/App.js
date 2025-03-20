@@ -63,7 +63,6 @@ function App() {
     const [weatherData, setWeatherData] = useState(null); // Weather and UV data
     const [error, setError] = useState(""); // Error message handling
     const [loading, setLoading] = useState(false); // Loading state indicator
-    const [navHeight, setNavHeight] = useState(0);
 
     /**
      * Fitzpatrick scale skin tone color mapping
@@ -116,6 +115,9 @@ function App() {
 
     /**
      * Dismisses the reminder popup and stops the notification sound
+     * Resets the audio state for the next reminder
+     *
+     * @returns {void}
      */
     const handleDismissPopup = () => {
         setShowPopup(false);
