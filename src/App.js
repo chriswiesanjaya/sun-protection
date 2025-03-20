@@ -53,6 +53,7 @@ function App() {
     const uvImpactsRef = useRef(null);
     const skinToneRef = useRef(null);
     const remindersRef = useRef(null);
+    const navRef = useRef(null);
 
     // State management for user interactions and data
     const [selectedTime, setSelectedTime] = useState(""); // Reminder time selection
@@ -62,6 +63,7 @@ function App() {
     const [weatherData, setWeatherData] = useState(null); // Weather and UV data
     const [error, setError] = useState(""); // Error message handling
     const [loading, setLoading] = useState(false); // Loading state indicator
+    const [navHeight, setNavHeight] = useState(0);
 
     /**
      * Fitzpatrick scale skin tone color mapping
@@ -85,7 +87,16 @@ function App() {
      * @returns {void}
      */
     const scrollToSection = (ref) => {
-        ref.current.scrollIntoView({ behavior: "smooth" });
+        if (!ref.current) return;
+
+        const navOffset = navRef.current ? navRef.current.offsetHeight : 0;
+        const elementPosition = ref.current.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - navOffset;
+
+        window.scrollTo({
+            top: offsetPosition,
+            behavior: "smooth",
+        });
     };
 
     /**
@@ -127,34 +138,33 @@ function App() {
             return {
                 message: "Low",
                 color: "green",
-                protection:
-                    "You can safely stay outside with minimal protection",
+                protection: "Have fun outside!",
             };
         } else if (uvIndex >= 3 && uvIndex <= 5) {
             return {
                 message: "Moderate",
                 color: "yellow",
-                protection: "Take precautions - cover up and use sunscreen",
+                protection: "SPF is your BFF, cover up and use sunscreen!",
             };
         } else if (uvIndex >= 6 && uvIndex <= 7) {
             return {
                 message: "High",
                 color: "orange",
                 protection:
-                    "Protection required. Reduce time in the sun between 11 am and 4 pm",
+                    "Sunburns are so last season, protect yourself and reduce your sun-time!",
             };
         } else if (uvIndex >= 8 && uvIndex <= 10) {
             return {
                 message: "Very High",
                 color: "red",
                 protection:
-                    "Extra precautions needed. Minimize sun exposure during midday hours",
+                    "Avoid the Lobster Look, use sunscreen every 2 hours and minimise sun exposure!",
             };
         } else {
             return {
                 message: "Extreme",
                 color: "purple",
-                protection: `EXTREME RISK! Avoid sun exposure during midday hours`,
+                protection: "UV off the Charts! You should be off the sun!",
             };
         }
     };
@@ -244,21 +254,78 @@ function App() {
     };
 
     return (
-        <div className="App">
+        <div className="App" style={{ overflowX: "hidden", width: "100%" }}>
             {/* Navigation bar */}
-            <nav className="sticky-nav">
-                <ul>
-                    <li onClick={() => scrollToSection(homeRef)}>Home</li>
-                    <li onClick={() => scrollToSection(locationRef)}>
+            <nav className="sticky-nav" ref={navRef}>
+                <ul
+                    style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        justifyContent: "center",
+                        gap: "10px",
+                        padding: "10px",
+                        margin: 0,
+                        listStyle: "none",
+                    }}
+                >
+                    <li
+                        style={{
+                            flex: "1 1 auto",
+                            minWidth: "150px",
+                            textAlign: "center",
+                            padding: "8px 15px",
+                            cursor: "pointer",
+                        }}
+                        onClick={() => scrollToSection(homeRef)}
+                    >
+                        Home
+                    </li>
+                    <li
+                        style={{
+                            flex: "1 1 auto",
+                            minWidth: "150px",
+                            textAlign: "center",
+                            padding: "8px 15px",
+                            cursor: "pointer",
+                        }}
+                        onClick={() => scrollToSection(locationRef)}
+                    >
                         Location
                     </li>
-                    <li onClick={() => scrollToSection(uvImpactsRef)}>
+                    <li
+                        style={{
+                            flex: "1 1 auto",
+                            minWidth: "150px",
+                            textAlign: "center",
+                            padding: "8px 15px",
+                            cursor: "pointer",
+                        }}
+                        onClick={() => scrollToSection(uvImpactsRef)}
+                    >
                         UV Impacts
                     </li>
-                    <li onClick={() => scrollToSection(skinToneRef)}>
+                    <li
+                        style={{
+                            flex: "1 1 auto",
+                            minWidth: "150px",
+                            textAlign: "center",
+                            padding: "8px 15px",
+                            cursor: "pointer",
+                        }}
+                        onClick={() => scrollToSection(skinToneRef)}
+                    >
                         Skin Tone
                     </li>
-                    <li onClick={() => scrollToSection(remindersRef)}>
+                    <li
+                        style={{
+                            flex: "1 1 auto",
+                            minWidth: "150px",
+                            textAlign: "center",
+                            padding: "8px 15px",
+                            cursor: "pointer",
+                        }}
+                        onClick={() => scrollToSection(remindersRef)}
+                    >
                         Reminders
                     </li>
                 </ul>
@@ -282,7 +349,8 @@ function App() {
                     paddingTop: "2rem",
                 }}
             >
-                <h1>Location</h1>
+                <h1>Where's the Sun? Tell Us Your Location</h1>
+                <p>↓</p>
                 <form onSubmit={handleLocationSubmit} className="location-form">
                     <input
                         type="text"
@@ -1123,28 +1191,58 @@ function App() {
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
-                        gap: "100px",
+                        gap: "50px",
+                        width: "100%",
+                        maxWidth: "800px",
+                        margin: "0 auto",
+                        padding: "0 15px",
                     }}
                 >
-                    <iframe
-                        src="/chart1-plot.html"
+                    <div
                         style={{
-                            width: "800px",
-                            height: "500px",
-                            border: "none",
+                            position: "relative",
+                            width: "100%",
+                            paddingBottom: "56.25%", // 16:9 aspect ratio
+                            height: 0,
+                            overflow: "hidden",
                         }}
-                        title="UV Impact Chart 1"
-                    />
-                    <iframe
-                        src="/chart2-plot.html"
+                    >
+                        <iframe
+                            src="/cancer_plot_v5.html"
+                            style={{
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                width: "100%",
+                                height: "100%",
+                                border: "none",
+                            }}
+                            title="UV Impact Chart 1"
+                        />
+                    </div>
+                    <div
                         style={{
-                            width: "800px",
-                            height: "500px",
-                            border: "none",
-                            marginBottom: "100px",
+                            position: "relative",
+                            width: "100%",
+                            paddingBottom: "56.25%", // 16:9 aspect ratio
+                            height: 0,
+                            overflow: "hidden",
+                            marginBottom: "50px",
                         }}
-                        title="UV Impact Chart 2"
-                    />
+                    >
+                        <iframe
+                            src="/uv_plot_v3.html"
+                            style={{
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                width: "100%",
+                                height: "100%",
+                                border: "none",
+                            }}
+                            title="UV Impact Chart 2"
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -1194,6 +1292,11 @@ function App() {
                             alignItems: "center",
                             justifyContent: "center",
                             gap: "40px",
+                            flexWrap: "wrap",
+                            padding: "0 15px",
+                            width: "100%",
+                            maxWidth: "100%",
+                            boxSizing: "border-box",
                         }}
                     >
                         <div style={{ textAlign: "center" }}>
