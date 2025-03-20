@@ -61,8 +61,8 @@ const ReminderSystem = ({ remindersRef }) => {
                 paddingTop: "2rem",
             }}
         >
-            <h1>Reminders</h1>
-            <p>Don't forget to re-apply sunscreen!</p>
+            <h1>Beep-Boop, It's Time to Slop!</h1>
+            <p>Never forget to apply sunscreen again</p>
             <p>↓</p>
 
             <div className="reminder-container">

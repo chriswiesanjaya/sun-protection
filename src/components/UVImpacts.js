@@ -28,8 +28,9 @@ const UVImpacts = ({ uvImpactsRef }) => {
                 paddingTop: "2rem",
             }}
         >
-            <h1>UV Impacts</h1>
-            <p>Click on the logo to learn more</p>
+            <h1>Here are Some Graphs!</h1>
+            <p>Because nothing says 'expert' like colorful lines and bars</p>
+            <small>(Click on the logo to learn more)</small>
             <p>↓</p>
 
             <div

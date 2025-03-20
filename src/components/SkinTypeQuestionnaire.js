@@ -200,8 +200,8 @@ const SkinTypeQuestionnaire = ({ skinTypeRef }) => {
                 paddingTop: "2rem",
             }}
         >
-            <h1>Skin Type</h1>
-            <p>Answer this questionnaire to determine your shade</p>
+            <h1>What's Your Skin Type?</h1>
+            <p>20 Questions? Please, we only need 10 to guess your shade!</p>
             <p>↓</p>
             <div
                 style={{
