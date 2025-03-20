@@ -9,7 +9,7 @@ import umbrella from "./logo/umbrella.png";
 import "./App.css";
 import { useRef, useState } from "react";
 
-// OpenWeather API key for weather and UV data
+// OpenWeather API key for weather and UV dataa
 // Note: In production, this should be stored in environment variables
 const OPENWEATHER_API_KEY = "476e8dfbd2ea445a0f2a2d76630d978f";
 
