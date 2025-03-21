@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import sunglasses from "../logo/sunglasses.png";
 import sunscreen from "../logo/sunscreen.png";
 import hat from "../logo/hat.png";
@@ -30,9 +30,29 @@ const OPENWEATHER_API_KEY = "476e8dfbd2ea445a0f2a2d76630d978f";
 
 const WeatherDisplay = ({ locationRef }) => {
     const [location, setLocation] = useState("");
+    const [suggestions, setSuggestions] = useState([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
     const [weatherData, setWeatherData] = useState(null);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const suggestionsRef = useRef(null);
+
+    // Close suggestions when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (
+                suggestionsRef.current &&
+                !suggestionsRef.current.contains(event.target)
+            ) {
+                setShowSuggestions(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
 
     /**
      * Determines UV protection message and color based on UV index
@@ -134,6 +154,37 @@ const WeatherDisplay = ({ locationRef }) => {
         }
     };
 
+    const fetchLocationSuggestions = async (searchText) => {
+        if (!searchText.trim()) {
+            setSuggestions([]);
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `https://api.openweathermap.org/geo/1.0/direct?q=${searchText}&limit=5&appid=${OPENWEATHER_API_KEY}`
+            );
+            const data = await response.json();
+            setSuggestions(data);
+            setShowSuggestions(true);
+        } catch (err) {
+            console.error("Error fetching location suggestions:", err);
+            setSuggestions([]);
+        }
+    };
+
+    const handleLocationChange = (e) => {
+        const value = e.target.value;
+        setLocation(value);
+        fetchLocationSuggestions(value);
+    };
+
+    const handleSuggestionClick = (suggestion) => {
+        setLocation(`${suggestion.name}, ${suggestion.country}`);
+        setShowSuggestions(false);
+        fetchWeatherData(`${suggestion.name}, ${suggestion.country}`);
+    };
+
     const handleLocationSubmit = (e) => {
         e.preventDefault();
         if (location.trim()) {
@@ -225,18 +276,78 @@ const WeatherDisplay = ({ locationRef }) => {
             <h1>Where's the Sun?</h1>
             <p>Tell us your location</p>
             <p>↓</p>
-            <form onSubmit={handleLocationSubmit} className="location-form">
-                <input
-                    type="text"
-                    className="location-input"
-                    placeholder="Enter your location"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                />
-                <button type="submit" className="search-button">
-                    Search
-                </button>
-            </form>
+            <div
+                className="location-form-container"
+                style={{ position: "relative" }}
+            >
+                <form onSubmit={handleLocationSubmit} className="location-form">
+                    <input
+                        type="text"
+                        className="location-input"
+                        placeholder="Enter your location"
+                        value={location}
+                        onChange={handleLocationChange}
+                        autoComplete="off"
+                        style={{ width: "80%", maxWidth: "400px" }}
+                    />
+                    <button type="submit" className="reminder-button">
+                        Search
+                    </button>
+                </form>
+                {showSuggestions && suggestions.length > 0 && (
+                    <div
+                        ref={suggestionsRef}
+                        className="location-suggestions"
+                        style={{
+                            position: "absolute",
+                            top: "100%",
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                            width: "80%",
+                            maxWidth: "400px",
+                            backgroundColor: "#282c34",
+                            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+                            borderRadius: "4px",
+                            zIndex: 1000,
+                            marginTop: "4px",
+                            border: "2px solid #4caf50",
+                            color: "white",
+                        }}
+                    >
+                        {suggestions.map((suggestion, index) => (
+                            <div
+                                key={`${suggestion.name}-${suggestion.country}-${index}`}
+                                onClick={() =>
+                                    handleSuggestionClick(suggestion)
+                                }
+                                style={{
+                                    padding: "12px",
+                                    cursor: "pointer",
+                                    borderBottom:
+                                        index < suggestions.length - 1
+                                            ? "1px solid rgba(255, 255, 255, 0.1)"
+                                            : "none",
+                                    transition: "all 0.2s ease",
+                                    textAlign: "left",
+                                    fontSize: "0.9em",
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.target.style.backgroundColor = "#4caf50";
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = "#282c34";
+                                }}
+                            >
+                                {suggestion.name},{" "}
+                                {suggestion.state
+                                    ? `${suggestion.state}, `
+                                    : ""}
+                                {suggestion.country}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
 
             {loading && <p>Loading...</p>}
             {error && <p className="error-message">{error}</p>}
